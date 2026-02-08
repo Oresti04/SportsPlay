@@ -1,9 +1,9 @@
 <?php
-require 'config.php';
+require_once __DIR__ . "../config/config.php"; 
 
 // Only allow logged-in admins
 if (empty($_SESSION['user_id']) || empty($_SESSION['is_admin'])) {
-    header('Location: login.php');
+    header('Location: ../sportsplay/auth/login.php');
     exit;
 }
 
@@ -124,7 +124,7 @@ $coaches = $coachesStmt->fetchAll();
                 <div class="admin-avatar">
                     <?php echo strtoupper(substr($_SESSION['user_name'], 0, 1)); ?>
                 </div>
-                <form method="post" action="logout.php">
+                <form method="post" action="../sportsplay/auth/logout.php">
                     <button type="submit" class="btn-logout">Logout</button>
                 </form>
             </div>

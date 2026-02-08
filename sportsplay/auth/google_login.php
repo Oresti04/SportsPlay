@@ -1,5 +1,5 @@
 <?php
-require 'config.php';
+require_once __DIR__ . "/../config/config.php"; 
 
 // This endpoint is called by Google Identity Services (GIS) via HTTPS POST.
 // It receives:

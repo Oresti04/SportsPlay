@@ -1,8 +1,8 @@
 <?php
-require 'config.php';
+require_once __DIR__ . "../config/config.php"; 
 
 if (empty($_SESSION['user_id'])) {
-    header('Location: login.php');
+    header('Location: ../sportsplay/auth/login.php');
     exit;
 }
 ?>
@@ -15,6 +15,6 @@ if (empty($_SESSION['user_id'])) {
 <body>
     <h1>Hi, <?php echo htmlspecialchars($_SESSION['user_name']); ?> 👋</h1>
     <p>You’re logged in to Sportsplay.</p>
-    <p><a href="logout.php">Log out</a></p>
+    <p><a href="../sportsplay/auth/logout.php">Log out</a></p>
 </body>
 </html>

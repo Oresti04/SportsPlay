@@ -1,5 +1,5 @@
 <?php
-require 'config.php';
+require_once __DIR__ . "/../config/config.php"; 
 
 $errors = [];
 
@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['is_admin']  = 0;
             $_SESSION['is_coach']  = 0;
 
-            header('Location: dashboard.php');
+            header('Location: ../dashboard.php');
             exit;
         }
     }
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>Sportsplay - Sign Up</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         .google-wrap {

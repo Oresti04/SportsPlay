@@ -1,8 +1,8 @@
 <?php
-require 'config.php';
+require_once __DIR__ . "../config/config.php"; 
 
 if (empty($_SESSION['user_id']) || empty($_SESSION['is_coach'])) {
-    header('Location: login.php');
+    header('Location: ../sportsplay/auth/login.php');
     exit;
 }
 ?>
@@ -30,7 +30,7 @@ if (empty($_SESSION['user_id']) || empty($_SESSION['is_coach'])) {
                 <span class="coach-user">
                     Hi, <?php echo htmlspecialchars($_SESSION['user_name']); ?>
                 </span>
-                <form action="logout.php" method="post" style="display:inline;">
+                <form action="../sportsplay/auth/logout.php" method="post" style="display:inline;">
                     <button class="btn-login" type="submit">Logout</button>
                 </form>
                 <div class="menu-icon">☰</div>

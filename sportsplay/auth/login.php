@@ -1,5 +1,5 @@
 <?php
-require 'config.php';
+require_once __DIR__ . "/../config/config.php"; 
 
 $errors = [];
 
@@ -33,11 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['is_coach']  = (int)$user['is_coach'];
 
             if (!empty($_SESSION['is_admin'])) {
-                header('Location: admin_coaches.php');
+                header('Location: ../admin_coaches.php');
             } elseif (!empty($_SESSION['is_coach'])) {
-                header('Location: coach_dashboard.php');
+                header('Location: ../coach_dashboard.php');
             } else {
-                header('Location: dashboard.php');
+                header('Location: ../dashboard.php');
             }
             exit;
         }
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>Sportsplay - Login</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         .google-wrap { display: flex; justify-content: center; margin: 10px 0; }
