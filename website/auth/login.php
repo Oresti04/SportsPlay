@@ -33,11 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['is_coach']  = (int)$user['is_coach'];
 
             if (!empty($_SESSION['is_admin'])) {
-                header('Location: ../admin-dash/admin_coaches.php');
+                header('Location: /SportsPlay/website/admin-dash/admin_dashboard.php');
             } elseif (!empty($_SESSION['is_coach'])) {
-                header('Location: ../admin-dash/coach_dashboard.php');
+                header('Location: /SportsPlay/website/coach_dashboard.php');
             } else {
-                header('Location: ../admin-dash/dashboard.php');
+                header('Location: /SportsPlay/website/dashboard.php');
             }
             exit;
         }

@@ -5,7 +5,7 @@
 $db_host = 'localhost';       // localhost
 $db_name = 'sportsplay';      // the DB you created in Adminer
 $db_user = 'root';
-$db_pass = 'root';   // the password we set for root
+$db_pass = 'sportsplay123';   // the password we set for root
 
 // Google Sign-In (Google Identity Services)
 $google_client_id = '1020968959954-jrqm4lre2si4iv0bgt3tb5qp75fjrk1c.apps.googleusercontent.com';

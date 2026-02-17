@@ -54,7 +54,7 @@ $initial = strtoupper(substr(trim($userName), 0, 1));
             <?php echo htmlspecialchars($initial); ?>
           </div>
 
-          <form method="post" action="auth/logout.php" style="margin:0;">
+          <form method="post" action="/SportsPlay/website/auth/logout.php" style="margin:0;">
             <button class="sp-btn sp-btn--pill" type="submit">Logout</button>
           </form>
         </div>
