@@ -49,7 +49,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>Sportsplay - Login</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/login-legacy.css">
+
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         .google-wrap { display: flex; justify-content: center; margin: 10px 0; }
@@ -72,13 +79,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="post" action="login.php">
-            <div class="form-group">
+            <div class="form-group field-email">
                 <span class="form-icon">✉️</span>
                 <input type="email" name="email" placeholder="Email"
                        value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
             </div>
 
-            <div class="form-group">
+            <div class="form-group field-password">
                 <span class="form-icon">🔒</span>
                 <input type="password" id="login_password" name="password" placeholder="Password" required>
                 <span class="toggle-password" onclick="togglePassword('login_password')">👁️</span>
@@ -97,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $google_login_uri = $scheme . '://' . $host . $base . '/google_login.php';
         ?>
 
+    <div class="social-row social-all">
         <div class="google-wrap">
             <div id="g_id_onload"
                  data-client_id="<?php echo htmlspecialchars($google_client_id); ?>"
@@ -107,16 +115,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  data-type="standard"
                  data-size="large"
                  data-theme="outline"
-                 data-text="signin_with"
+                 data-text="continue with"
                  data-shape="pill"
                  data-logo_alignment="left">
             </div>
         </div>
-
-        <div class="social-row">
-            <button type="button" class="social-btn"><span>f</span> Facebook</button>
-            <button type="button" class="social-btn"> Apple</button>
-        </div>
+    </div>
 
         <p class="small-text">
             Don’t you have account? <a href="signup.php">Sign Up</a>
