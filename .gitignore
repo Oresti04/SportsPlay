@@ -32,3 +32,9 @@ app/windows/flutter/ephemeral/
 app/**/GeneratedPluginRegistrant.*
 app/ios/Flutter/Generated.xcconfig
 app/ios/Flutter/flutter_export_environment.sh
+
+#Database
+DB/.sql
+
+#Vendor Folder
+website/vendor/
