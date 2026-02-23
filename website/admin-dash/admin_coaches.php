@@ -1,71 +1,87 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
 
-
 // Only allow logged-in admins
-if (empty($_SESSION['user_id']) || empty($_SESSION['is_admin'])) {
-    header('Location: auth/login.php');
-    exit;
-}
+require_role('admin');
 
 $pageTitle = 'Coaches';
 $activeNav = 'coaches';
 
-$currentAdminId = (int)$_SESSION['user_id'];
+$currentAdminId = (int)($_SESSION['user_id'] ?? 0);
 $errors = [];
 $success = '';
 
+// Role IDs
+$adminRoleId = (int)($pdo->query("SELECT role_id FROM roles WHERE role_name = 'admin' LIMIT 1")->fetchColumn() ?: 0);
+$coachRoleId = (int)($pdo->query("SELECT role_id FROM roles WHERE role_name = 'coach' LIMIT 1")->fetchColumn() ?: 0);
+
 // =============== ACTIONS ===============
 
-// Promote (from dropdown)
+// Promote (from dropdown): assign coach role + ensure coaches profile row exists
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['promote_user_id'])) {
-    $id = (int)$_POST['promote_user_id'];
+    $id = (int)($_POST['promote_user_id'] ?? 0);
+
     if ($id <= 0) {
         $errors[] = 'Please select a user to promote.';
     } elseif ($id === $currentAdminId) {
         $errors[] = 'You cannot change your own role here.';
+    } elseif ($coachRoleId === 0) {
+        $errors[] = "Role 'coach' was not found in the database.";
     } else {
-        // Only promote non-admin, non-coach
-        $stmt = $pdo->prepare(
-            'UPDATE users
-             SET is_coach = 1
-             WHERE user_id = :id AND is_admin = 0 AND is_coach = 0'
-        );
-        $stmt->execute(['id' => $id]);
-
-        if ($stmt->rowCount() > 0) {
-            $success = 'User promoted to coach.';
+        // Block promoting admins
+        $chkAdmin = $pdo->prepare('SELECT COUNT(*) FROM user_roles WHERE user_id = :uid AND role_id = :rid');
+        $chkAdmin->execute(['uid' => $id, 'rid' => $adminRoleId]);
+        if ((int)$chkAdmin->fetchColumn() > 0) {
+            $errors[] = 'You cannot promote an admin to coach.';
         } else {
-            $errors[] = 'Could not promote this user (maybe already a coach or admin).';
+            // Add coach role if missing
+            $chkCoach = $pdo->prepare('SELECT COUNT(*) FROM user_roles WHERE user_id = :uid AND role_id = :rid');
+            $chkCoach->execute(['uid' => $id, 'rid' => $coachRoleId]);
+
+            if ((int)$chkCoach->fetchColumn() === 0) {
+                $ins = $pdo->prepare('INSERT INTO user_roles (user_id, role_id) VALUES (:uid, :rid)');
+                $ins->execute(['uid' => $id, 'rid' => $coachRoleId]);
+            }
+
+            // Ensure coaches table row exists
+            $chkProfile = $pdo->prepare('SELECT COUNT(*) FROM coaches WHERE user_id = :uid');
+            $chkProfile->execute(['uid' => $id]);
+            if ((int)$chkProfile->fetchColumn() === 0) {
+                $insCoach = $pdo->prepare('INSERT INTO coaches (user_id) VALUES (:uid)');
+                $insCoach->execute(['uid' => $id]);
+            }
+
+            $success = 'User promoted to coach.';
         }
     }
 }
 
-// Demote coach
+// Demote coach: remove coach role + remove coaches profile row
 if (isset($_GET['demote'])) {
     $id = (int)$_GET['demote'];
     if ($id > 0 && $id !== $currentAdminId) {
-        $stmt = $pdo->prepare(
-            'UPDATE users
-             SET is_coach = 0
-             WHERE user_id = :id'
-        );
-        $stmt->execute(['id' => $id]);
+        if ($coachRoleId > 0) {
+            $del = $pdo->prepare('DELETE FROM user_roles WHERE user_id = :uid AND role_id = :rid');
+            $del->execute(['uid' => $id, 'rid' => $coachRoleId]);
+        }
+        $delCoach = $pdo->prepare('DELETE FROM coaches WHERE user_id = :uid');
+        $delCoach->execute(['uid' => $id]);
     }
     header('Location: admin_coaches.php');
     exit;
 }
 
-// Delete coach
+// Delete coach/user: delete user record (blocked for admins)
 if (isset($_GET['delete'])) {
     $id = (int)$_GET['delete'];
     if ($id > 0 && $id !== $currentAdminId) {
         // Only delete non-admins
-        $stmt = $pdo->prepare(
-            'DELETE FROM users
-             WHERE user_id = :id AND is_admin = 0'
-        );
-        $stmt->execute(['id' => $id]);
+        $chkAdmin = $pdo->prepare('SELECT COUNT(*) FROM user_roles WHERE user_id = :uid AND role_id = :rid');
+        $chkAdmin->execute(['uid' => $id, 'rid' => $adminRoleId]);
+        if ((int)$chkAdmin->fetchColumn() === 0) {
+            $stmt = $pdo->prepare('DELETE FROM users WHERE user_id = :id');
+            $stmt->execute(['id' => $id]);
+        }
     }
     header('Location: admin_coaches.php');
     exit;
@@ -73,18 +89,27 @@ if (isset($_GET['delete'])) {
 
 // =============== LOAD DATA ===============
 
+// Users who are not admin and not coach (promotable)
 $promotableUsers = $pdo->query(
-    'SELECT user_id, first_name, last_name, email
-     FROM users
-     WHERE is_admin = 0 AND is_coach = 0
-     ORDER BY first_name, last_name, email'
+    "SELECT u.user_id, u.first_name, u.last_name, u.email
+     FROM users u
+     WHERE u.is_active = 1
+       AND NOT EXISTS (
+         SELECT 1 FROM user_roles ur
+         JOIN roles r ON r.role_id = ur.role_id
+         WHERE ur.user_id = u.user_id AND r.role_name IN ('admin','coach')
+       )
+     ORDER BY u.first_name, u.last_name, u.email"
 )->fetchAll();
 
+// Current coaches (users with coach role)
 $coaches = $pdo->query(
-    'SELECT user_id, first_name, last_name, email, created_at
-     FROM users
-     WHERE is_coach = 1
-     ORDER BY first_name, last_name, email'
+    "SELECT u.user_id, u.first_name, u.last_name, u.email, u.created_at
+     FROM users u
+     JOIN user_roles ur ON ur.user_id = u.user_id
+     JOIN roles r ON r.role_id = ur.role_id
+     WHERE r.role_name = 'coach'
+     ORDER BY u.first_name, u.last_name, u.email"
 )->fetchAll();
 
 include __DIR__ . '/../includes/admin_header.php';

@@ -225,22 +225,28 @@ CREATE TABLE `logs` (
     ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- =========================
+-- SEED DATA
+-- =========================
+
 
 INSERT INTO `users`
   (`user_id`, `email`, `password_hash`, `first_name`, `last_name`, `phone`, `created_at`, `is_active`)
 VALUES
-(1, 'djole786@gmail.com', '$2y$10$XuPOgTgAAAorjYS.1.NXTe2tIYgFmVNIK.JXEwL96Zdp6iZSyXShu', 'Devil', NULL, '0953628294', '2025-12-05 00:04:47', 1),
-(2, 'da@gmail.com', '$2y$10$pdW7Vg7t7THHlB4aKrdKFuU1f0GD6RHYt4t9nQNyfnFMX91McK7BO', 'MojaBaba', NULL, '0995555555', '2025-12-05 00:49:17', 1),
-(4, 'djordje.vulevic123@gmail.com', '$2y$10$wDQLwwGtBNIMfQ2s8EZ4reg/x8Z5rLkvcH6LJvOBLOS9TeFB4btoy', 'djordje', 'vulevic', NULL, '2026-02-02 03:10:45', 1),
-(5, 'devilw530@gmail.com', '$2y$10$iWmiGiT1y9w3Te2hhEv2Sud3niQPpmjwCejZvflHBcpDTcj1Dzumq', 'Devil', 'Warrior', NULL, '2026-02-02 19:55:54', 1);
+  (1, 'admin@test.com',  '$2a$12$I/xGB5YlWIMULDaGmbQdyOUZ8jO/1EXNXsvUuFfHFo9eHydzVNFsO',  'Admin',  'User', '0000000001', '2026-02-22 20:29:39', 1),
+  (2, 'coach@test.com',  '$2a$12$I/xGB5YlWIMULDaGmbQdyOUZ8jO/1EXNXsvUuFfHFo9eHydzVNFsO',  'Coach',  'User', '0000000002', '2026-02-22 20:29:39', 1),
+  (3, 'parent@test.com', '$2a$12$I/xGB5YlWIMULDaGmbQdyOUZ8jO/1EXNXsvUuFfHFo9eHydzVNFsO',  'Parent', 'User', '0000000003', '2026-02-22 20:29:39', 1);
 
 INSERT INTO `roles` (`role_id`, `role_name`) VALUES
-(1, 'admin'),
-(2, 'coach'),
-(3, 'user');
+  (1, 'admin'),
+  (2, 'coach'),
+  (3, 'user');
 
+-- Adjusted to match the new users:
+-- admin@test.com -> admin
+-- coach@test.com -> coach
+-- parent@test.com -> user  
 INSERT INTO `user_roles` (`user_id`, `role_id`) VALUES
-(1, 1),
-(2, 2),
-(4, 2),
-(5, 3);
+  (1, 1),
+  (2, 2),
+  (3, 3);

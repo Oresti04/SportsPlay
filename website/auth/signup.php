@@ -1,7 +1,11 @@
 <?php
-require_once __DIR__ . "/../config/config.php"; 
+require_once __DIR__ . "/../config/config.php";
 
 $errors = [];
+
+// Default signup role for this DB (recommended: parent)
+// If you want new signups to be "user" instead, change to 'user'.
+$defaultRoleName = 'user';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get values from form
@@ -11,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password  = $_POST['password'] ?? '';
     $confirm   = $_POST['confirm_password'] ?? '';
 
-    // Basic validation (no format check for email)
+    // Validation
     if ($full_name === '') {
         $errors[] = 'Full name is required.';
     }
@@ -28,9 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Passwords do not match.';
     }
 
-    // If no validation errors, insert into DB
     if (empty($errors)) {
-        // Check if email already exists (uniqueness)
+        // Check if email already exists
         $stmt = $pdo->prepare('SELECT user_id FROM users WHERE email = :email');
         $stmt->execute(['email' => $email]);
         if ($stmt->fetch()) {
@@ -38,34 +41,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // Split full_name into first + last
             $parts = preg_split('/\s+/', $full_name, 2);
-            $first_name = $parts[0];
+            $first_name = $parts[0] ?? '';
             $last_name  = $parts[1] ?? '';
 
-            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+            if ($first_name === '') {
+                $errors[] = 'Full name is required.';
+            } else {
+                $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
-            // Insert into users table
-            $insert = $pdo->prepare(
-                'INSERT INTO users (email, password_hash, first_name, last_name, phone, ip_address)
-                 VALUES (:email, :password_hash, :first_name, :last_name, :phone, :ip)'
-            );
-            $insert->execute([
-                'email'         => $email,
-                'password_hash' => $password_hash,
-                'first_name'    => $first_name,
-                'last_name'     => $last_name,
-                'phone'         => $phone !== '' ? $phone : null,
-                'ip'            => $_SERVER['REMOTE_ADDR'] ?? null,
-            ]);
+                try {
+                    $pdo->beginTransaction();
 
-            // Log the user in
-            session_regenerate_id(true);
-            $_SESSION['user_id']   = $pdo->lastInsertId();
-            $_SESSION['user_name'] = $first_name;
-            $_SESSION['is_admin']  = 0;
-            $_SESSION['is_coach']  = 0;
+                    // 1) Insert into users table (matches your DB schema)
+                    $insert = $pdo->prepare(
+                        'INSERT INTO users (email, password_hash, first_name, last_name, phone)
+                         VALUES (:email, :password_hash, :first_name, :last_name, :phone)'
+                    );
+                    $insert->execute([
+                        'email'         => $email,
+                        'password_hash' => $password_hash,
+                        'first_name'    => $first_name,
+                        'last_name'     => $last_name !== '' ? $last_name : null,
+                        'phone'         => $phone !== '' ? $phone : null,
+                    ]);
 
-            header('Location: ../dashboard.php');
-            exit;
+                    $new_user_id = (int)$pdo->lastInsertId();
+
+                    // 2) Assign default role (parent recommended; fallback to user if parent isn't found)
+                    $roleStmt = $pdo->prepare("SELECT role_id FROM roles WHERE role_name = :role LIMIT 1");
+                    $roleStmt->execute(['role' => $defaultRoleName]);
+                    $role_id = (int)($roleStmt->fetchColumn() ?: 0);
+
+                    if ($role_id <= 0 && $defaultRoleName !== 'user') {
+                        // fallback to 'user' if 'parent' role doesn't exist (just in case)
+                        $defaultRoleName = 'user';
+                        $roleStmt->execute(['role' => $defaultRoleName]);
+                        $role_id = (int)($roleStmt->fetchColumn() ?: 0);
+                    }
+
+                    if ($role_id <= 0) {
+                        throw new RuntimeException("Default role not found in roles table.");
+                    }
+
+                    $link = $pdo->prepare('INSERT INTO user_roles (user_id, role_id) VALUES (:uid, :rid)');
+                    $link->execute(['uid' => $new_user_id, 'rid' => $role_id]);
+
+                    // 3) Create parent profile row (works with your schema; address/city/etc can be added later)
+                    // Only do this for parent role (optional but recommended for your DB)
+                    if ($defaultRoleName === 'parent') {
+                        $parentIns = $pdo->prepare('INSERT INTO parents (user_id) VALUES (:uid)');
+                        $parentIns->execute(['uid' => $new_user_id]);
+                    }
+
+                    $pdo->commit();
+
+                    // 4) Log the user in
+                    session_regenerate_id(true);
+                    $_SESSION['user_id']   = $new_user_id;
+                    $_SESSION['user_name'] = $first_name;
+                    $_SESSION['roles']     = [$defaultRoleName];
+
+                    header('Location: ../dashboard.php');
+                    exit;
+
+                } catch (Throwable $e) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+
+                    // Duplicate email (safety)
+                    if ($e instanceof PDOException && ($e->errorInfo[1] ?? null) == 1062) {
+                        $errors[] = 'An account with that email already exists.';
+                    } else {
+                        // For debugging you can temporarily echo $e->getMessage()
+                        $errors[] = 'Signup failed. Please try again.';
+                    }
+                }
+            }
         }
     }
 }

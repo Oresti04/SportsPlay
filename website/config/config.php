@@ -29,3 +29,72 @@ try {
 }
 
 session_start();
+
+// Base URL path for redirects (works for /sportsplay-main/website and similar subfolders)
+$APP_URL_BASE = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+$APP_URL_BASE = preg_replace('#/(auth|admin-dash)$#', '', $APP_URL_BASE);
+if ($APP_URL_BASE === '') { $APP_URL_BASE = '/'; }
+
+function app_url(string $path = ''): string {
+    global $APP_URL_BASE;
+    $path = ltrim($path, '/');
+    return rtrim($APP_URL_BASE, '/') . '/' . $path;
+}
+
+
+
+// --- Auth helpers for the new roles schema (roles + user_roles) ---
+function get_user_roles(PDO $pdo, int $user_id): array {
+    $stmt = $pdo->prepare(
+        'SELECT r.role_name
+         FROM user_roles ur
+         JOIN roles r ON r.role_id = ur.role_id
+         WHERE ur.user_id = :uid'
+    );
+    $stmt->execute(['uid' => $user_id]);
+    $roles = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+    // Normalize to lowercase unique strings
+    $roles = array_values(array_unique(array_map('strtolower', $roles)));
+    return $roles;
+}
+
+function has_role(string $role): bool {
+    $role = strtolower($role);
+    return in_array($role, $_SESSION['roles'] ?? [], true);
+}
+function require_any_role(array $roles): void {
+    require_login();
+    foreach ($roles as $role) {
+        if (has_role($role)) return;
+    }
+    header('Location: ' . app_url('dashboard.php'));
+    exit;
+}
+
+
+function require_login(): void {
+    if (empty($_SESSION['user_id'])) {
+        header('Location: ' . app_url('auth/login.php'));
+        exit;
+    }
+}
+
+function require_role(string $role): void {
+    require_login();
+    if (!has_role($role)) {
+        header('Location: ' . app_url('dashboard.php'));
+        exit;
+    }
+}
+
+function redirect_after_login(): void {
+    if (has_role('admin')) {
+        header('Location: ' . app_url('admin-dash/admin_dashboard.php'));
+    } elseif (has_role('coach')) {
+        header('Location: ' . app_url('coach_dashboard.php'));
+    } else {
+        header('Location: ' . app_url('dashboard.php'));
+    }
+    exit;
+}
+

@@ -1,21 +1,23 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
 
-if (empty($_SESSION['user_id']) || empty($_SESSION['is_admin'])) {
-  header('Location: auth/login.php');
-  exit;
-}
+require_role('admin');
 
 $pageTitle = 'Dashboard';
 $activeNav = 'dashboard';
 
-// Lightweight metrics (works with current DB.sql which only has `users`)
+// Lightweight metrics (works with current DB.sql which uses roles + user_roles)
 $totalUsers  = (int)($pdo->query('SELECT COUNT(*) FROM users')->fetchColumn() ?? 0);
 $activeUsers = (int)($pdo->query('SELECT COUNT(*) FROM users WHERE is_active = 1')->fetchColumn() ?? 0);
-$admins      = (int)($pdo->query('SELECT COUNT(*) FROM users WHERE is_admin = 1')->fetchColumn() ?? 0);
-$coaches     = (int)($pdo->query('SELECT COUNT(*) FROM users WHERE is_coach = 1')->fetchColumn() ?? 0);
+$admins      = (int)($pdo->query("SELECT COUNT(DISTINCT ur.user_id) FROM user_roles ur JOIN roles r ON r.role_id = ur.role_id WHERE r.role_name = 'admin'")->fetchColumn() ?? 0);
+$coaches     = (int)($pdo->query("SELECT COUNT(DISTINCT ur.user_id) FROM user_roles ur JOIN roles r ON r.role_id = ur.role_id WHERE r.role_name = 'coach'")->fetchColumn() ?? 0);
 $new7d       = (int)($pdo->query('SELECT COUNT(*) FROM users WHERE created_at >= (NOW() - INTERVAL 7 DAY)')->fetchColumn() ?? 0);
-$googleUsers = (int)($pdo->query("SELECT COUNT(*) FROM users WHERE provider = 'google'")->fetchColumn() ?? 0);
+$googleUsers = (int)($pdo->query("
+    SELECT COUNT(DISTINCT user_id)
+    FROM oauth_identities
+    WHERE provider = 'google'
+")->fetchColumn() ?? 0);
+
 
 // Last / this month registrations
 $newThisMonth = (int)($pdo->query(
@@ -26,13 +28,26 @@ $newLastMonth = (int)($pdo->query(
   "SELECT COUNT(*) FROM users WHERE created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01') AND created_at < DATE_FORMAT(CURDATE(), '%Y-%m-01')"
 )->fetchColumn() ?? 0);
 
-// Until the DB schema is expanded, approximate players as non-admin, non-coach accounts.
-$approxPlayers = (int)($pdo->query('SELECT COUNT(*) FROM users WHERE is_admin = 0 AND is_coach = 0')->fetchColumn() ?? 0);
+// Until the DB schema is expanded, approximate players as non-admin, non-coach accounts. (updated nto mach new DB)
+$approxPlayers = (int)($pdo->query("SELECT COUNT(*) FROM players")->fetchColumn() ?? 0);
 
 // Recent registrations
-$recentUsers = $pdo->query(
-  'SELECT first_name, last_name, email, created_at, provider FROM users ORDER BY created_at DESC LIMIT 8'
-)->fetchAll();
+$recentUsers = $pdo->query("
+  SELECT
+    u.first_name,
+    u.last_name,
+    u.email,
+    u.created_at,
+    COALESCE(oi.provider, 'local') AS provider
+  FROM users u
+  LEFT JOIN (
+    SELECT user_id, MIN(provider) AS provider
+    FROM oauth_identities
+    GROUP BY user_id
+  ) oi ON oi.user_id = u.user_id
+  ORDER BY u.created_at DESC
+  LIMIT 8
+")->fetchAll();
 
 // Monthly registrations (last 12 months)
 $rows = $pdo->query(

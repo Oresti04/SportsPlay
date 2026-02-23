@@ -1,9 +1,9 @@
 <?php
-require_once __DIR__ . "/../config/config.php"; 
+require_once __DIR__ . "/../config/config.php";
 
-// This endpoint is called by Google Identity Services (GIS) via HTTPS POST.
-// It receives:
-//  - credential (the ID token JWT)
+// Google Identity Services (GIS) POST handler.
+// Receives:
+//  - credential (ID token JWT)
 //  - g_csrf_token (must match g_csrf_token cookie)
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -29,14 +29,13 @@ if ($id_token === '') {
     fail_and_redirect('Google sign-in failed (missing token). Please try again.');
 }
 
-if (empty($google_client_id) || $google_client_id === 'PASTE_YOUR_GOOGLE_CLIENT_ID_HERE') {
-    fail_and_redirect('Google sign-in is not configured yet (missing Client ID in config.php).');
+if (empty($google_client_id)) {
+    fail_and_redirect('Google sign-in is not configured yet (missing Client ID in config/config.php).');
 }
 
+// --- Verify ID token ---
 $payload = false;
-
-// Preferred: verify the ID token using Google's PHP client library.
-$autoload = __DIR__ . '/vendor/autoload.php';
+$autoload = __DIR__ . '/../vendor/autoload.php';
 if (file_exists($autoload)) {
     require_once $autoload;
 
@@ -47,8 +46,7 @@ if (file_exists($autoload)) {
         $payload = false;
     }
 } else {
-    // Dev fallback: tokeninfo endpoint (OK for debugging; use library for production).
-    // https://developers.google.com/identity/gsi/web/guides/verify-google-id-token
+    // Dev fallback: tokeninfo endpoint (OK for debugging)
     $url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($id_token);
     $json = @file_get_contents($url);
     if ($json !== false) {
@@ -64,7 +62,7 @@ if (!$payload || !is_array($payload)) {
 }
 
 $email = $payload['email'] ?? null;
-$sub   = $payload['sub'] ?? null; // unique, stable Google Account identifier
+$sub   = $payload['sub'] ?? null;
 
 if (!$email || !$sub) {
     fail_and_redirect('Google sign-in failed (missing profile info).');
@@ -73,10 +71,7 @@ if (!$email || !$sub) {
 $given_name  = $payload['given_name'] ?? '';
 $family_name = $payload['family_name'] ?? '';
 $name        = $payload['name'] ?? '';
-$picture     = $payload['picture'] ?? null;
-
 if ($given_name === '' && $name !== '') {
-    // Fallback: split full name
     $parts = preg_split('/\s+/', trim($name), 2);
     $given_name = $parts[0] ?? '';
     $family_name = $parts[1] ?? '';
@@ -85,19 +80,38 @@ if ($given_name === '') {
     $given_name = 'User';
 }
 
-// --- Find or create account ---
+$picture = $payload['picture'] ?? null;
+
+// --- New DB schema note ---
+// This project DB now uses roles + user_roles, and does NOT store google_sub/provider on users.
+// We link Google accounts via an oauth_identities table.
+// If you haven't created it yet, run this once in Adminer/SQL command:
+//
+// CREATE TABLE oauth_identities (
+//   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+//   user_id INT UNSIGNED NOT NULL,
+//   provider VARCHAR(30) NOT NULL,
+//   provider_sub VARCHAR(128) NOT NULL,
+//   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+//   UNIQUE KEY uniq_provider_sub (provider, provider_sub),
+//   KEY idx_user_id (user_id),
+//   CONSTRAINT fk_oauth_user FOREIGN KEY (user_id)
+//     REFERENCES users(user_id) ON DELETE CASCADE
+// ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 try {
+    // 1) Try to find existing identity by provider_sub
     $stmt = $pdo->prepare(
-        'SELECT user_id, first_name, is_active, is_admin, is_coach, provider, google_sub
-         FROM users
-         WHERE google_sub = :sub OR email = :email
-         LIMIT 1'
+        "SELECT u.user_id, u.first_name, u.is_active
+         FROM oauth_identities oi
+         JOIN users u ON u.user_id = oi.user_id
+         WHERE oi.provider = 'google' AND oi.provider_sub = :sub
+         LIMIT 1"
     );
-    $stmt->execute(['sub' => $sub, 'email' => $email]);
+    $stmt->execute(['sub' => $sub]);
     $user = $stmt->fetch();
 } catch (PDOException $e) {
-    // Most likely missing DB columns.
-    fail_and_redirect('Google sign-in needs a small DB update (provider/google_sub columns). See the setup steps.');
+    fail_and_redirect('Google sign-in needs DB setup: please create the oauth_identities table (see comment in auth/google_login.php).');
 }
 
 if ($user) {
@@ -105,66 +119,81 @@ if ($user) {
         fail_and_redirect('This account is disabled.');
     }
 
-    // Prevent account takeover: if an existing local account uses this email but isn't linked,
-    // we don’t auto-link. Log in with password first, then we can add linking later.
-    if (($user['provider'] ?? 'local') === 'local' && empty($user['google_sub'])) {
-        fail_and_redirect('An account with this email already exists. Please sign in with password first, then we can link Google.');
-    }
-
-    // If we matched by email and google_sub is empty, link it (safe because provider isn’t local).
-    if (empty($user['google_sub'])) {
-        $upd = $pdo->prepare('UPDATE users SET google_sub = :sub WHERE user_id = :id');
-        $upd->execute(['sub' => $sub, 'id' => $user['user_id']]);
-    }
-
-    // Update avatar (optional)
-    if ($picture) {
-        $upd = $pdo->prepare('UPDATE users SET avatar_url = :pic WHERE user_id = :id');
-        $upd->execute(['pic' => $picture, 'id' => $user['user_id']]);
-    }
-
     session_regenerate_id(true);
-    $_SESSION['user_id']   = $user['user_id'];
+    $_SESSION['user_id']   = (int)$user['user_id'];
     $_SESSION['user_name'] = $user['first_name'];
-    $_SESSION['is_admin']  = (int)$user['is_admin'];
-    $_SESSION['is_coach']  = (int)$user['is_coach'];
+    $_SESSION['roles']     = get_user_roles($pdo, (int)$user['user_id']);
 
-    if (!empty($_SESSION['is_admin'])) {
-        header('Location: admin_coaches.php');
-    } elseif (!empty($_SESSION['is_coach'])) {
-        header('Location: coach_dashboard.php');
-    } else {
-        header('Location: dashboard.php');
-    }
-    exit;
+    redirect_after_login();
 }
 
-// Create a new user for Google sign-in
+// 2) No identity yet: find (or create) user by email
+$stmt = $pdo->prepare('SELECT user_id, first_name, is_active FROM users WHERE email = :email LIMIT 1');
+$stmt->execute(['email' => $email]);
+$existing = $stmt->fetch();
+
+if ($existing) {
+    if ((int)$existing['is_active'] !== 1) {
+        fail_and_redirect('This account is disabled.');
+    }
+
+    // Link Google identity to the existing user account
+    $ins = $pdo->prepare(
+        "INSERT INTO oauth_identities (user_id, provider, provider_sub)
+         VALUES (:uid, 'google', :sub)"
+    );
+    $ins->execute(['uid' => (int)$existing['user_id'], 'sub' => $sub]);
+
+    session_regenerate_id(true);
+    $_SESSION['user_id']   = (int)$existing['user_id'];
+    $_SESSION['user_name'] = $existing['first_name'];
+    $_SESSION['roles']     = get_user_roles($pdo, (int)$existing['user_id']);
+
+    redirect_after_login();
+}
+
+// 3) Create a brand new user + role + parent profile, then link identity
 $random_password = bin2hex(random_bytes(32));
 $password_hash = password_hash($random_password, PASSWORD_DEFAULT);
 
-$insert = $pdo->prepare(
-    'INSERT INTO users (email, password_hash, first_name, last_name, ip_address, provider, google_sub, avatar_url)
-     VALUES (:email, :hash, :first, :last, :ip, :provider, :sub, :avatar)'
+$insUser = $pdo->prepare(
+    'INSERT INTO users (email, password_hash, first_name, last_name, phone, is_active)
+     VALUES (:email, :hash, :first, :last, NULL, :ip, 1)'
 );
-$insert->execute([
-    'email'    => $email,
-    'hash'     => $password_hash,
-    'first'    => $given_name,
-    'last'     => $family_name !== '' ? $family_name : null,
-    'ip'       => $_SERVER['REMOTE_ADDR'] ?? null,
-    'provider' => 'google',
-    'sub'      => $sub,
-    'avatar'   => $picture,
+$insUser->execute([
+    'email' => $email,
+    'hash'  => $password_hash,
+    'first' => $given_name,
+    'last'  => $family_name !== '' ? $family_name : null,
+    'ip'    => $_SERVER['REMOTE_ADDR'] ?? null,
 ]);
 
-$user_id = (int)$pdo->lastInsertId();
+$new_user_id = (int)$pdo->lastInsertId();
+
+// Assign default role 'user'
+$roleStmt = $pdo->prepare("SELECT role_id FROM roles WHERE role_name = 'user' LIMIT 1");
+$roleStmt->execute();
+$role_id = (int)($roleStmt->fetchColumn() ?: 0);
+if ($role_id > 0) {
+    $link = $pdo->prepare('INSERT INTO user_roles (user_id, role_id) VALUES (:uid, :rid)');
+    $link->execute(['uid' => $new_user_id, 'rid' => $role_id]);
+}
+
+// Create parent profile row (optional but matches schema)
+$parentIns = $pdo->prepare('INSERT INTO parents (user_id) VALUES (:uid)');
+$parentIns->execute(['uid' => $new_user_id]);
+
+// Link google identity
+$insId = $pdo->prepare(
+    "INSERT INTO oauth_identities (user_id, provider, provider_sub)
+     VALUES (:uid, 'google', :sub)"
+);
+$insId->execute(['uid' => $new_user_id, 'sub' => $sub]);
 
 session_regenerate_id(true);
-$_SESSION['user_id']   = $user_id;
+$_SESSION['user_id']   = $new_user_id;
 $_SESSION['user_name'] = $given_name;
-$_SESSION['is_admin']  = 0;
-$_SESSION['is_coach']  = 0;
+$_SESSION['roles']     = ['user'];
 
-header('Location: dashboard.php');
+header('Location: ../dashboard.php');
 exit;

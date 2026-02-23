@@ -1,18 +1,10 @@
 <?php
 require_once __DIR__ . '/config/config.php';
-if (empty($_SESSION['user_id'])) {
-    header('Location: index.php');
-    exit;
-}
+require_login();
 
-if (!empty($_SESSION['is_admin'])) {
-  header('Location: admin_dashboard.php');
-  exit;
-}
-
-if (!empty($_SESSION['is_coach'])) {
-  header('Location: coach_dashboard.php');
-  exit;
+// If someone with admin/coach role lands here, send them to the right dashboard.
+if (has_role('admin') || has_role('coach')) {
+    redirect_after_login();
 }
 ?>
 
@@ -26,6 +18,7 @@ if (!empty($_SESSION['is_coach'])) {
 <body>
   <h1>Welcome to SportsPlay!</h1>
   <p>This is the parent dashboard. You can view your teams, enroll in new ones, and manage your profile.</p>
+  <a href="auth/logout.php">Logout</a>
 </body>
 </html>
 

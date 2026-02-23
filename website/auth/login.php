@@ -16,30 +16,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $password === '') {
         $errors[] = 'Email and password are required.';
     } else {
-        $stmt = $pdo->prepare('SELECT user_id, first_name, password_hash, is_active, is_admin, is_coach
-                               FROM users WHERE email = :email');
+        $stmt = $pdo->prepare('SELECT user_id, first_name, password_hash, is_active FROM users WHERE email = :email');
         $stmt->execute(['email' => $email]);
         $user = $stmt->fetch();
-
-        if (!$user || !password_verify($password, $user['password_hash'])) {
+if (!$user || !password_verify($password, $user['password_hash'])) {
             $errors[] = 'Invalid email or password.';
         } elseif ((int)$user['is_active'] !== 1) {
             $errors[] = 'This account is disabled.';
         } else {
             session_regenerate_id(true);
-            $_SESSION['user_id']   = $user['user_id'];
+            $_SESSION['user_id']   = (int)$user['user_id'];
             $_SESSION['user_name'] = $user['first_name'];
-            $_SESSION['is_admin']  = (int)$user['is_admin'];
-            $_SESSION['is_coach']  = (int)$user['is_coach'];
 
-            if (!empty($_SESSION['is_admin'])) {
-                header('Location: /SportsPlay/website/admin-dash/admin_dashboard.php');
-            } elseif (!empty($_SESSION['is_coach'])) {
-                header('Location: /SportsPlay/website/coach_dashboard.php');
-            } else {
-                header('Location: /SportsPlay/website/dashboard.php');
-            }
-            exit;
+            // Load roles from the new schema
+            $_SESSION['roles'] = get_user_roles($pdo, (int)$user['user_id']);
+
+            redirect_after_login();
         }
     }
 }
