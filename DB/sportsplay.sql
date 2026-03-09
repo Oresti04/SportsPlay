@@ -1,5 +1,17 @@
 USE sportsplay;
 
+DROP TABLE IF EXISTS `payments`;
+DROP TABLE IF EXISTS `google_tokens`;
+
+DROP TABLE IF EXISTS `registrations`;
+
+DROP TABLE IF EXISTS `team_posts`;
+DROP TABLE IF EXISTS `league_announcements`;
+
+DROP TABLE IF EXISTS `practices`;
+DROP TABLE IF EXISTS `game_results`;
+
+DROP TABLE IF EXISTS `games`;
 DROP TABLE IF EXISTS `team_players`;
 DROP TABLE IF EXISTS `teams`;
 
@@ -225,11 +237,159 @@ CREATE TABLE `logs` (
     ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =========================
--- SEED DATA
--- =========================
+CREATE TABLE `games` (
+  `game_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `league_id` int(10) unsigned NOT NULL,
+  `home_team_id` int(10) unsigned NOT NULL,
+  `away_team_id` int(10) unsigned NOT NULL,
+  `venue_id` int(10) unsigned DEFAULT NULL,
+  `scheduled_start` timestamp NOT NULL,
+  `stage` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`game_id`),
+  KEY `idx_games_league_id` (`league_id`),
+  KEY `idx_games_home_team_id` (`home_team_id`),
+  KEY `idx_games_away_team_id` (`away_team_id`),
+  KEY `idx_games_venue_id` (`venue_id`),
+  CONSTRAINT `fk_games_league`
+    FOREIGN KEY (`league_id`) REFERENCES `leagues` (`league_id`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_games_home_team`
+    FOREIGN KEY (`home_team_id`) REFERENCES `teams` (`team_id`)
+    ON DELETE RESTRICT,
+  CONSTRAINT `fk_games_away_team`
+    FOREIGN KEY (`away_team_id`) REFERENCES `teams` (`team_id`)
+    ON DELETE RESTRICT,
+  CONSTRAINT `fk_games_venue`
+    FOREIGN KEY (`venue_id`) REFERENCES `venues` (`venue_id`)
+    ON DELETE SET NULL,
+  CONSTRAINT `chk_games_different_teams`
+    CHECK (`home_team_id` <> `away_team_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `game_results` (
+  `result_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `game_id` int(10) unsigned NOT NULL,
+  `home_score` int(10) unsigned NOT NULL DEFAULT 0,
+  `away_score` int(10) unsigned NOT NULL DEFAULT 0,
+  `recorded_by` int(10) unsigned DEFAULT NULL,
+  `recorded_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`result_id`),
+  UNIQUE KEY `uniq_game_result` (`game_id`),
+  KEY `idx_game_results_recorded_by` (`recorded_by`),
+  CONSTRAINT `fk_game_results_game`
+    FOREIGN KEY (`game_id`) REFERENCES `games` (`game_id`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_game_results_recorded_by`
+    FOREIGN KEY (`recorded_by`) REFERENCES `users` (`user_id`)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `practices` (
+  `practice_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `team_id` int(10) unsigned NOT NULL,
+  `venue_id` int(10) unsigned DEFAULT NULL,
+  `start_time` timestamp NOT NULL,
+  `end_time` timestamp DEFAULT NULL,
+  PRIMARY KEY (`practice_id`),
+  KEY `idx_practices_team_id` (`team_id`),
+  KEY `idx_practices_venue_id` (`venue_id`),
+  CONSTRAINT `fk_practices_team`
+    FOREIGN KEY (`team_id`) REFERENCES `teams` (`team_id`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_practices_venue`
+    FOREIGN KEY (`venue_id`) REFERENCES `venues` (`venue_id`)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE `league_announcements` (
+  `announcement_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `league_id` int(10) unsigned NOT NULL,
+  `author_id` int(10) unsigned DEFAULT NULL,
+  `title` varchar(255) NOT NULL,
+  `body` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`announcement_id`),
+  KEY `idx_league_announcements_league_id` (`league_id`),
+  KEY `idx_league_announcements_author_id` (`author_id`),
+  CONSTRAINT `fk_league_announcements_league`
+    FOREIGN KEY (`league_id`) REFERENCES `leagues` (`league_id`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_league_announcements_author`
+    FOREIGN KEY (`author_id`) REFERENCES `users` (`user_id`)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `team_posts` (
+  `post_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `team_id` int(10) unsigned NOT NULL,
+  `author_id` int(10) unsigned DEFAULT NULL,
+  `title` varchar(255) NOT NULL,
+  `body` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `is_public` tinyint(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`post_id`),
+  KEY `idx_team_posts_team_id` (`team_id`),
+  KEY `idx_team_posts_author_id` (`author_id`),
+  CONSTRAINT `fk_team_posts_team`
+    FOREIGN KEY (`team_id`) REFERENCES `teams` (`team_id`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_team_posts_author`
+    FOREIGN KEY (`author_id`) REFERENCES `users` (`user_id`)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `registrations` (
+  `registration_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `player_id` int(10) unsigned NOT NULL,
+  `league_id` int(10) unsigned NOT NULL,
+  `season_year` int(4) unsigned NOT NULL,
+  `status` varchar(50) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`registration_id`),
+  KEY `idx_registrations_player_id` (`player_id`),
+  KEY `idx_registrations_league_id` (`league_id`),
+  CONSTRAINT `fk_registrations_player`
+    FOREIGN KEY (`player_id`) REFERENCES `players` (`player_id`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_registrations_league`
+    FOREIGN KEY (`league_id`) REFERENCES `leagues` (`league_id`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `payments` (
+  `payment_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `registration_id` int(10) unsigned NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `currency` varchar(10) NOT NULL DEFAULT 'USD',
+  `payment_method` varchar(50) NOT NULL,
+  `provider_transaction_id` varchar(255) DEFAULT NULL,
+  `status` varchar(50) NOT NULL,
+  `paid_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`payment_id`),
+  KEY `idx_payments_registration_id` (`registration_id`),
+  CONSTRAINT `fk_payments_registration`
+    FOREIGN KEY (`registration_id`) REFERENCES `registrations` (`registration_id`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `google_tokens` (
+  `token_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned NOT NULL,
+  `provider` varchar(50) NOT NULL,
+  `google_user_id` varchar(255) DEFAULT NULL,
+  `access_token` text NOT NULL,
+  `refresh_token` text DEFAULT NULL,
+  `scope` text DEFAULT NULL,
+  `id_token` text DEFAULT NULL,
+  `token_type` varchar(50) DEFAULT NULL,
+  `expires_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`token_id`),
+  KEY `idx_google_tokens_user_id` (`user_id`),
+  CONSTRAINT `fk_google_tokens_user`
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT INTO `users`
   (`user_id`, `email`, `password_hash`, `first_name`, `last_name`, `phone`, `created_at`, `is_active`)
 VALUES
@@ -242,10 +402,6 @@ INSERT INTO `roles` (`role_id`, `role_name`) VALUES
   (2, 'coach'),
   (3, 'user');
 
--- Adjusted to match the new users:
--- admin@test.com -> admin
--- coach@test.com -> coach
--- parent@test.com -> user  
 INSERT INTO `user_roles` (`user_id`, `role_id`) VALUES
   (1, 1),
   (2, 2),
