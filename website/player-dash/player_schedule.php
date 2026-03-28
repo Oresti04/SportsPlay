@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/includes/role_helpers.php';
-require_once __DIR__ . '/includes/db_queries.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/role_helpers.php';
+require_once __DIR__ . '/../includes/db_queries.php';
 sportsplay_require_role(['player']);
 
 $userId = (int)$_SESSION['user_id'];
@@ -10,7 +10,7 @@ $events = $player['schedule'] ?? [];
 
 $roleLabel='Player'; $roleSub='Player Console'; $sidebarInclude='player_sidebar.php';
 $pageTitle='Schedule'; $activeNav='schedule';
-include __DIR__ . '/includes/role_header.php'; ?>
+include __DIR__ . '/../includes/role_header.php'; ?>
 
 <section class="sp-card">
   <div class="sp-card__hd">
@@ -35,4 +35,4 @@ include __DIR__ . '/includes/role_header.php'; ?>
     <?php endif; ?>
   </div>
 </section>
-<?php include __DIR__ . '/includes/role_footer.php'; ?>
+<?php include __DIR__ . '/../includes/role_footer.php'; ?>

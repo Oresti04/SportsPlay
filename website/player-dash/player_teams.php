@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/includes/role_helpers.php';
-require_once __DIR__ . '/includes/db_queries.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/role_helpers.php';
+require_once __DIR__ . '/../includes/db_queries.php';
 sportsplay_require_role(['player']);
 
 $userId = (int)$_SESSION['user_id'];
@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $directory = sp_player_team_directory($pdo, $userId);
 $roleLabel = 'Player'; $roleSub = 'Player Console'; $sidebarInclude = 'player_sidebar.php';
 $pageTitle = 'Team Directory'; $activeNav = 'teams';
-include __DIR__ . '/includes/role_header.php'; ?>
+include __DIR__ . '/../includes/role_header.php'; ?>
 
 <?php if ($success): ?>
   <div style="background:#ecfdf5;border:1px solid #bbf7d0;border-radius:12px;padding:10px 14px;margin-bottom:12px;color:#15803d;font-size:13px;font-weight:600;">
@@ -88,4 +88,4 @@ include __DIR__ . '/includes/role_header.php'; ?>
   </div>
 </section>
 
-<?php include __DIR__ . '/includes/role_footer.php'; ?>
+<?php include __DIR__ . '/../includes/role_footer.php'; ?>

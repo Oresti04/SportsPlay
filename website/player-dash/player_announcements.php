@@ -1,13 +1,13 @@
 <?php
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/includes/role_helpers.php';
-require_once __DIR__ . '/includes/db_queries.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/role_helpers.php';
+require_once __DIR__ . '/../includes/db_queries.php';
 sportsplay_require_role(['player']);
 $userId = (int)$_SESSION['user_id'];
 $player = sp_player_data($pdo, $userId);
 $roleLabel='Player'; $roleSub='Player Console'; $sidebarInclude='player_sidebar.php';
 $pageTitle='Announcements'; $activeNav='announcements';
-include __DIR__ . '/includes/role_header.php'; ?>
+include __DIR__ . '/../includes/role_header.php'; ?>
 <section class="sp-card">
   <div class="sp-card__hd">
     <div><div class="sp-card__title">Team Announcements</div><div class="sp-card__sub">Broadcasts from your coach</div></div>
@@ -30,4 +30,4 @@ include __DIR__ . '/includes/role_header.php'; ?>
     <?php endif; ?>
   </div>
 </section>
-<?php include __DIR__ . '/includes/role_footer.php'; ?>
+<?php include __DIR__ . '/../includes/role_footer.php'; ?>

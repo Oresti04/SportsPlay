@@ -91,7 +91,7 @@ if (!function_exists('sportsplay_dashboard_path_for_role')) {
             case 'coach':
                 return 'coach-dash/coach_dashboard.php';
             case 'player':
-                return 'player_dashboard.php';
+                return 'player-dash/player_dashboard.php';
             case 'parent':
             default:
                 return 'parent-dash/parent_dashboard.php';
