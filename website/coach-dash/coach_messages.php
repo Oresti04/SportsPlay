@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/includes/role_helpers.php';
-require_once __DIR__ . '/includes/db_queries.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/role_helpers.php';
+require_once __DIR__ . '/../includes/db_queries.php';
 sportsplay_require_role(['coach']);
 
 $userId = (int)$_SESSION['user_id'];
@@ -40,7 +40,7 @@ if ($activeUserId > 0 && isset($threads[$activeUserId])) {
 
 $roleLabel = 'Coach'; $roleSub = 'Coach Console'; $sidebarInclude = 'coach_sidebar.php';
 $pageTitle = 'Private Messages'; $activeNav = 'messages';
-include __DIR__ . '/includes/role_header.php'; ?>
+include __DIR__ . '/../includes/role_header.php'; ?>
 
 <div class="sp-chat-layout">
   <div class="sp-chat-sidebar">
@@ -166,4 +166,4 @@ include __DIR__ . '/includes/role_header.php'; ?>
 </script>
 <?php endif; ?>
 
-<?php include __DIR__ . '/includes/role_footer.php'; ?>
+<?php include __DIR__ . '/../includes/role_footer.php'; ?>

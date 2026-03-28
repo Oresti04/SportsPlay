@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/includes/role_helpers.php';
-require_once __DIR__ . '/includes/db_queries.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/role_helpers.php';
+require_once __DIR__ . '/../includes/db_queries.php';
 sportsplay_require_role(['coach']);
 
 $userId = (int)$_SESSION['user_id'];
@@ -48,9 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $teamId > 0) {
     }
 }
 
-$roleLabel='Coach'; $roleSub='Coach Console'; $sidebarInclude='coach_sidebar.php';
+$roleLabel='Coach'; $roleSub='Coach Console'; $sidebarInclude='/../includes/coach_sidebar.php';
 $pageTitle='Announcements'; $activeNav='announcements';
-include __DIR__ . '/includes/role_header.php'; ?>
+include __DIR__ . '/../includes/role_header.php'; ?>
 
 <section class="sp-page-grid">
   <section class="sp-card">
@@ -146,4 +146,4 @@ include __DIR__ . '/includes/role_header.php'; ?>
     <?php endif; ?>
   </div>
 </section>
-<?php include __DIR__ . '/includes/role_footer.php'; ?>
+<?php include __DIR__ . '/../includes/role_footer.php'; ?>

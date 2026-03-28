@@ -35,7 +35,8 @@ if (!empty($_SESSION['user_id']) && isset($pdo)) {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="assets/css/admin-ui.css" />
+  <link rel="stylesheet" href="/SportsPlay/website/assets/css/admin-ui.css" />
+  <link rel="stylesheet" href="/SportsPlay/website/assets/css/coach.css">
 </head>
 <body>
   <div class="sp-admin">
@@ -77,7 +78,7 @@ if (!empty($_SESSION['user_id']) && isset($pdo)) {
             <?php endif; ?>
           </div>
 
-          <form method="post" action="auth/logout.php" style="margin:0;">
+          <form method="post" action="/auth/logout.php" style="margin:0;">
             <button class="sp-btn sp-btn--pill" type="submit">Logout</button>
           </form>
         </div>

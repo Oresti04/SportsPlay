@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/includes/role_helpers.php';
-require_once __DIR__ . '/includes/db_queries.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/role_helpers.php';
+require_once __DIR__ . '/../includes/db_queries.php';
 sportsplay_require_role(['coach']);
 
 $userId = (int)$_SESSION['user_id'];
@@ -18,7 +18,7 @@ $securityError = '';
 
 function sp_coach_remove_profile_image_file(?string $path): void
 {
-    if (!$path || strpos($path, 'assets/uploads/profiles/') !== 0) {
+    if (!$path || strpos($path, '/../assets/uploads/profiles/') !== 0) {
         return;
     }
     $abs = __DIR__ . '/' . $path;
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $initial = strtoupper(substr(trim((string)($profile['first_name'] ?? 'C')), 0, 1));
 $roleLabel='Coach'; $roleSub='Coach Console'; $sidebarInclude='coach_sidebar.php';
 $pageTitle='Settings'; $activeNav='settings';
-include __DIR__ . '/includes/role_header.php'; ?>
+include __DIR__ . '/../includes/role_header.php'; ?>
 
 <section class="sp-card">
   <div class="sp-card__hd"><div><div class="sp-card__title">Profile Settings</div><div class="sp-card__sub">Photo, contact and team information</div></div></div>
@@ -202,4 +202,4 @@ include __DIR__ . '/includes/role_header.php'; ?>
   </section>
 </section>
 
-<?php include __DIR__ . '/includes/role_footer.php'; ?>
+<?php include __DIR__ . '/../includes/role_footer.php'; ?>

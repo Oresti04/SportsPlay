@@ -2,6 +2,6 @@
     </div>
   </div>
 
-  <script src="assets/js/admin-ui.js"></script>
+  <script src="/SportsPlay/website/assets/js/admin-ui.js"></script>
 </body>
 </html>

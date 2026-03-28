@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/includes/role_helpers.php';
-require_once __DIR__ . '/includes/db_queries.php';
+require_once __DIR__ . '/..//config/config.php';
+require_once __DIR__ . '/..//includes/role_helpers.php';
+require_once __DIR__ . '/..//includes/db_queries.php';
 sportsplay_require_role(['coach']);
 
 $userId    = (int)$_SESSION['user_id'];
@@ -10,7 +10,7 @@ $coach     = sp_coach_data($pdo, $userId);
 
 $roleLabel='Coach'; $roleSub='Coach Console'; $sidebarInclude='coach_sidebar.php';
 $pageTitle='Coach Dashboard'; $activeNav='dashboard';
-include __DIR__ . '/includes/role_header.php'; ?>
+include __DIR__ . '/..//includes/role_header.php'; ?>
 <section class="sp-page-grid">
   <section class="sp-card sp-page-hero">
     <div class="sp-hero">
@@ -101,4 +101,4 @@ include __DIR__ . '/includes/role_header.php'; ?>
     </div>
   </section>
 </section>
-<?php include __DIR__ . '/includes/role_footer.php'; ?>
+<?php include __DIR__ . '/../includes/role_footer.php'; ?>
