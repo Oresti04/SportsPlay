@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/includes/role_helpers.php';
-require_once __DIR__ . '/includes/db_queries.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/role_helpers.php';
+require_once __DIR__ . '/../includes/db_queries.php';
 sportsplay_require_role(['parent']);
 
 $userId = (int)$_SESSION['user_id'];
@@ -10,7 +10,7 @@ $parent = sp_parent_data($pdo, $userId);
 
 $roleLabel='Parent'; $roleSub='Parent Console'; $sidebarInclude='parent_sidebar.php';
 $pageTitle='Parent Dashboard'; $activeNav='dashboard';
-include __DIR__ . '/includes/role_header.php';
+include __DIR__ . '/../includes/role_header.php';
 $selected = $parent['selected'];
 ?>
 <section class="sp-page-grid">
@@ -111,4 +111,4 @@ $selected = $parent['selected'];
     </div>
   </section>
 </section>
-<?php include __DIR__ . '/includes/role_footer.php'; ?>
+<?php include __DIR__ . '/../includes/role_footer.php'; ?>

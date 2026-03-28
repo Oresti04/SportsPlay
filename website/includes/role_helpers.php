@@ -94,7 +94,7 @@ if (!function_exists('sportsplay_dashboard_path_for_role')) {
                 return 'player_dashboard.php';
             case 'parent':
             default:
-                return 'parent_dashboard.php';
+                return 'parent-dash/parent_dashboard.php';
         }
     }
 }

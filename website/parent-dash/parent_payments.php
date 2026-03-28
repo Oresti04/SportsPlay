@@ -1,13 +1,13 @@
 <?php
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/includes/role_helpers.php';
-require_once __DIR__ . '/includes/db_queries.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/role_helpers.php';
+require_once __DIR__ . '/../includes/db_queries.php';
 sportsplay_require_role(['parent']);
 $userId = (int)$_SESSION['user_id'];
 $parent = sp_parent_data($pdo, $userId);
 $roleLabel='Parent'; $roleSub='Parent Console'; $sidebarInclude='parent_sidebar.php';
 $pageTitle='Payments'; $activeNav='payments';
-include __DIR__ . '/includes/role_header.php'; ?>
+include __DIR__ . '/../includes/role_header.php'; ?>
 <section class="sp-card">
   <div class="sp-card__hd">
     <div><div class="sp-card__title">Payment History</div><div class="sp-card__sub">Fees, dues, and billing status</div></div>
@@ -42,4 +42,4 @@ include __DIR__ . '/includes/role_header.php'; ?>
     <?php endif; ?>
   </div>
 </section>
-<?php include __DIR__ . '/includes/role_footer.php'; ?>
+<?php include __DIR__ . '/../includes/role_footer.php'; ?>
